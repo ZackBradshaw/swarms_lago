@@ -1,0 +1,42 @@
+resources:
+  accelerators: A100:1  # Adjust based on your needs
+
+setup: |
+  # Install Docker Compose if not already available
+  if ! command -v docker-compose &> /dev/null
+  then
+    curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    chmod +x /usr/local/bin/docker-compose
+  fi
+
+  # Create the docker-compose.yml file
+  cat <<EOF > docker-compose.yml
+  version: "3.8"
+
+  volumes:
+    lago_postgres_data:
+    lago_redis_data:
+    lago_storage_data:
+
+  services:
+    db:
+      image: postgres:14-alpine
+      container_name: lago-db
+      restart: unless-stopped
+      environment:
+        POSTGRES_DB: \${POSTGRES_DB:-lago}
+        POSTGRES_USER: \${POSTGRES_USER:-lago}
+        POSTGRES_PASSWORD: \${POSTGRES_PASSWORD:-changeme}
+        PGDATA: /data/postgres
+        PGPORT: \${POSTGRES_PORT:-5432}
+      volumes:
+        - lago_postgres_data:/data/postgres
+      ports:
+        - \${POSTGRES_PORT:-5432}:\${POSTGRES_PORT:-5432}
+    # Add the rest of your services here, following the same pattern
+
+  EOF
+
+run: |
+  # Launch the services using Docker Compose
+  docker-compose up -d
